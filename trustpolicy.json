@@ -1,0 +1,42 @@
+{
+
+    "Version": "2012-10-17",
+  
+    "Statement": [
+  
+      {
+  
+        "Effect": "Allow",
+  
+        "Principal": {
+  
+          "Federated": "arn:aws:iam::654654366125:oidc-provider/token.actions.githubusercontent.com"
+  
+        },
+  
+        "Action": "sts:AssumeRoleWithWebIdentity",
+  
+        "Condition": {
+  
+          "StringLike": {
+  
+            "token.actions.githubusercontent.com:sub":
+  
+              "repo:74664860/*"
+  
+          },
+  
+          "StringEquals": {
+  
+            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+  
+          }
+  
+        }
+  
+      }
+  
+    ]
+  
+  }
+  
