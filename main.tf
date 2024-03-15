@@ -13,7 +13,11 @@ provider "aws" {
 
 variable "terrateam-bucket081" {
   type    = string
+<<<<<<< HEAD
   default = "terrateam-dev-bucket-trial3"
+=======
+  default = "terrateam-dev-bucket-trial2"
+>>>>>>> origin/terraform-dev
 }
 
 resource "aws_s3_bucket" "terrateam-bucket081" {
