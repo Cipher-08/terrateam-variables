@@ -1,0 +1,79 @@
+name: Deploy FF Terraform Workspace
+"on":
+    push:
+        branches:
+            - main
+    pull_request:
+        branches:
+            - main
+    workflow_dispatch:
+        inputs:
+            apply:
+                description: Should apply Terraform changes?
+                type: boolean
+                default: false
+jobs:
+    deploy:
+        name: Deploy Terraform Workspace
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write
+        env:
+            FIREFLY_ACCESS_KEY: ${{ secrets.FIREFLY_ACCESS_KEY }}
+            FIREFLY_SECRET_KEY: ${{ secrets.FIREFLY_SECRET_KEY }}
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
+              with:
+                fetch-depth: 0
+            - name: Set deployment parameters
+              id: set-params
+              run: |-
+                if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+                  echo "apply=${{ github.event.inputs.apply }}" >> $GITHUB_OUTPUT
+                elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+                  echo "apply=true" >> $GITHUB_OUTPUT
+                else
+                  echo "apply=false" >> $GITHUB_OUTPUT
+                fi
+            - name: Configure AWS Profiles
+              run: |
+                aws configure --profile Saksham set aws_access_key_id ${{ secrets.AKIA4WJPWYLYHXRMEPNE }} && aws configure --profile Saksham set aws_secret_access_key ${{ secrets.x8hr30Wo6LSksOugKlr7DubbwBghY9CfOqH0EM/v }} && aws configure --profile Saksham set region us-east-1
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                terraform_version: 1.9.5
+                terraform_wrapper: false
+            - name: Initialize Terraform
+              id: init
+              run: terraform init >& init.log
+              continue-on-error: true
+            - name: Terraform Plan
+              id: plan
+              if: steps.init.outcome == 'success'
+              run: terraform plan -json -out=tf.plan > plan_log.jsonl && terraform show -json tf.plan > plan_output.json && terraform show tf.plan > plan_output_raw.log
+              continue-on-error: true
+            - name: Firefly Post Plan
+              uses: gofireflyio/fireflyci@v0.5.51
+              with:
+                command: post-plan
+                context: ""
+                init-log-file: init.log
+                plan-json-log-file: plan_log.jsonl
+                plan-output-file: plan_output.json
+                plan-raw-log-file: plan_output_raw.log
+                workspace: FF
+            - name: Terraform Apply
+              if: steps.set-params.outputs.apply == 'true' && steps.plan.outcome == 'success'
+              run: terraform apply -auto-approve -json > apply_log.jsonl
+              continue-on-error: true
+            - name: Firefly Post Apply
+              if: steps.set-params.outputs.apply == 'true' && steps.plan.outcome == 'success'
+              uses: gofireflyio/fireflyci@v0.5.51
+              with:
+                apply-log-file: apply_log.jsonl
+                command: post-apply
+                context: ""
+                workspace: FF
+              continue-on-error: true
