@@ -1,25 +1,56 @@
 provider "aws" {
-  region     = "us-west-2"
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_key
-}
+  region = "us-east-1"
 
-resource "aws_instance" "example" {
-  ami           = "ami-0e86e20dae9224db8" # Replace with your desired AMI ID
-  instance_type = "t2.micro"
+  default_tags {
+    tags = {
+      "Environment" = var.environment
+      "createdby"   = "firefly"
+    }
 
-  tags = {
-    Name = "TerraformExample"
   }
 }
 
-variable "aws_access_key" {
-  description = "AWS Access Key"
-  type        = string
+data "aws_ami" "ubuntu" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical
 }
 
-variable "aws_secret_key" {
-  description = "AWS Secret Key"
-  type        = string
-  sensitive   = true
+data "aws_availability_zones" "available" {
+}
+
+module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "5.8.1"
+
+  name                    = "firefly-vpc"
+  cidr                    = "10.42.0.0/16"
+  azs                     = slice(data.aws_availability_zones.available.names, 0, 2)
+  public_subnets          = ["10.42.0.0/24", "10.42.1.0/24"]
+  map_public_ip_on_launch = true
+
+}
+
+resource "aws_instance" "web" {
+  ami                    = data.aws_ami.ubuntu.image_id
+  instance_type          = "t3.micro"
+  subnet_id              = module.vpc.public_subnets[0]
+  vpc_security_group_ids = [module.vpc.default_security_group_id]
+
+  key_name = ""
+
+  tags = {
+    "Environment" = var.environment
+    "createdby"   = "firefly"
+  }
 }
