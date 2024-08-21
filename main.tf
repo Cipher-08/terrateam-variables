@@ -1,6 +1,7 @@
 provider "aws" {
   region     = "us-west-2"
-
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
 }
 
 resource "aws_instance" "example" {
@@ -12,3 +13,13 @@ resource "aws_instance" "example" {
   }
 }
 
+variable "aws_access_key" {
+  description = "AWS Access Key"
+  type        = string
+}
+
+variable "aws_secret_key" {
+  description = "AWS Secret Key"
+  type        = string
+  sensitive   = true
+}
