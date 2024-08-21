@@ -1,21 +1,25 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 3.0" 
-    }
+provider "aws" {
+  region     = "us-west-2"
+  access_key = var.aws_access_key
+  secret_key = var.aws_secret_key
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-0e86e20dae9224db8" # Replace with your desired AMI ID
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "TerraformExample"
   }
 }
 
-provider "aws" {
-  region = "us-east-1"
+variable "aws_access_key" {
+  description = "AWS Access Key"
+  type        = string
 }
 
-variable "terrateam-bucket081" {
-  type    = string
-  default = "terrateam-dev-bucket-trial3"
-}
-
-resource "aws_s3_bucket" "terrateam-bucket081" {
-  bucket = var.terrateam-bucket081
+variable "aws_secret_key" {
+  description = "AWS Secret Key"
+  type        = string
+  sensitive   = true
 }
